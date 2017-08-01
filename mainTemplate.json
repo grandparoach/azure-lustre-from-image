@@ -107,37 +107,6 @@
         "description": "Authentication type for the virtual machines"
       }
     },
-    "publicIPAddressNewOrExisting": {
-      "type": "string",
-      "defaultValue": "new",
-      "allowedValues": [
-        "new",
-        "existing"
-      ],
-      "metadata": {
-        "description": "Parameter that specifies if an new or an existing public IP should be used for deployment"
-      }
-    },
-    "publicIPAddressResourceGroup": {
-      "type": "string",
-      "metadata": {
-        "description": "Public IP resource group for cases when existing public IP is used"
-      }
-    },
-    "publicIPAddressName": {
-      "type": "string",
-      "defaultValue": "publicip-lustre",
-      "metadata": {
-        "description": "Public IP Address name"
-      }
-    },
-    "publicIPAddressDomainNameLabel": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Public IP DNS label"
-      }
-    },
     "mgsVmSize": {
       "type": "string",
       "defaultValue": "Standard_DS2_v2",
@@ -259,7 +228,6 @@
         "virtualNetworks": "2017-04-01",
         "networkInterfaces": "2017-04-01",
         "loadBalancers": "2017-04-01",
-        "publicIPAddresses": "2017-04-01",
         "networkSecurityGroups": "2017-04-01"
       },
       "compute": {
@@ -309,7 +277,6 @@
     "scriptUrlLustre": "[concat(variables('baseUrl'),'lustre.sh')]",
     "scriptUrlMonitoring": "[concat(variables('baseUrl'),'monitoring.sh')]",
     "templateUrlImage": "[concat(variables('baseUrl'),'image-',parameters('imageNewOrExisting'),'.json')]",
-    "templateUrlPublicIP": "[concat(variables('baseUrl'),'publicIP-',parameters('publicIPAddressNewOrExisting'),'.json')]",
     "templateUrlVnet": "[concat(variables('baseUrl'),'vnet-',parameters('vnetNewOrExisting'),'.json')]",
     "templateUrlMonitoring": "[concat(variables('baseUrl'),'monitoring.json')]",
     "sshKeyPath": "[concat('/home/',parameters('adminUsername'),'/.ssh/authorized_keys')]",
@@ -326,7 +293,6 @@
     },
     "linuxConfiguration_password": {},
     "linuxConfiguration": "[variables(concat('linuxConfiguration_',parameters('authenticationType')))]",
-    "publicIPID": "[resourceId(parameters('publicIPAddressResourceGroup'), 'Microsoft.Network/publicIPAddresses', parameters('publicIPAddressName'))]",
     "vnetID": "[resourceId(parameters('vnetResourceGroup'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
     "subnetServersID": "[concat(variables('vnetID'), '/subnets/', parameters('subnetServersName'))]",
     "subnetClientsID": "[concat(variables('vnetID'), '/subnets/', parameters('subnetClientsName'))]",
@@ -439,48 +405,12 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersions').resources.deployments]",
-      "type": "Microsoft.Resources/deployments",
-      "name": "publicIP",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('templateUrlPublicIP')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "apiVersions": {
-            "value": "[variables('apiVersions')]"
-          },
-          "providerTags": {
-            "value": "[parameters('providerTags')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "publicIPAddressName": {
-            "value": "[parameters('publicIPAddressName')]"
-          },
-          "publicIPAddressType": {
-            "value": "Dynamic"
-          },
-          "publicIPAddressDomainNameLabel": {
-            "value": "[parameters('publicIPAddressDomainNameLabel')]"
-          },
-          "publicIPAddressResourceGroup": {
-            "value": "[parameters('publicIPAddressResourceGroup')]"
-          }
-        }
-      }
-    },
-    {
       "apiVersion": "[variables('apiVersions').network.networkInterfaces]",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(parameters('vmNamePrefix'),'mgs')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'vnet')]",
-        "[concat('Microsoft.Resources/deployments/', 'publicIP')]"
+        "[concat('Microsoft.Resources/deployments/', 'vnet')]"
       ],
       "properties": {
         "ipConfigurations": [
@@ -488,9 +418,6 @@
             "name": "ip1",
             "properties": {
               "privateIPAllocationMethod": "Dynamic",
-              "publicIPAddress": {
-                "id": "[variables('publicIPID')]"
-              },
               "subnet": {
                 "id": "[variables('subnetServersID')]"
               }
@@ -898,20 +825,6 @@
       "value": "[concat('',reference(resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmNamePrefix'), 'mgs'))).ipConfigurations[0].properties.privateIPAddress)]",
       "metadata": {
         "description": "MGS node private IP address and NID."
-      }
-    },
-    "mgsDomainName": {
-      "type": "string",
-      "value": "[reference('publicIP').outputs.fqdn.value]",
-      "metadata": {
-        "description": "SSH to the MGS node using this public IP address and run command 'ltop' to view Lustre Monitoring Tool"
-      }
-    },
-    "gangliaUrl": {
-      "type": "string",
-      "value": "[concat('http://',reference('publicIP').outputs.fqdn.value,'/ganglia/')]",
-      "metadata": {
-        "description": "URL to access Ganglia Monitoring System on the MGS node"
       }
     },
     "mountCommand": {
