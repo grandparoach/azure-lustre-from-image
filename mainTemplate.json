@@ -4,7 +4,7 @@
   "parameters": {
     "artifactsBaseUrl": {
       "type": "string",
-      "defaultValue": "",
+      "defaultValue": "https://raw.githubusercontent.com/grandparoach/azure-lustre-from-image/master",
       "metadata": {
         "description": "Base URL of the solution template gallery package",
         "artifactsBaseUrl": ""
